@@ -1,0 +1,1186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#245c45">
+  <meta name="description" content="Annotate tandem repeat DNA sequences with a shared motif set, compare stacked motif plots, and export a combined annotation table.">
+  <title>vamos · Tandem repeat annotation</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%23245c45%22%2F%3E%3Cpath%20d%3D%22M10%2014h13l9%2018-9%2018H10l9-18zm25%200h13l9%2018-9%2018H35l9-18z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E%0A" type="image/svg+xml">
+  <style>:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#20382e;background:#f6f7f4;font-synthesis:none;--green:#245c45;--muted:#738078;--line:#e0e5dd;--mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace}
+
+/* Result views share an ID encoding across the table, plot, and motif key. */
+.output-tabs{display:flex;width:fit-content;max-width:100%;gap:4px;padding:4px;background:#eaf0e4;border:1px solid #dce4d4;border-radius:8px;margin:20px 0 16px}
+.output-tab{border:0;background:transparent;color:#7a8a70;border-radius:5px;padding:10px 17px;white-space:nowrap;font-size:12px;font-weight:500;transition:background .15s,color .15s}
+.output-tab:hover{color:#36583d;background:#f5f8f0}
+.output-tab[aria-selected="true"]{color:#245c45;background:white;box-shadow:0 1px 4px #34492a12}
+.output-panel:focus-visible{outline:3px solid #83b69b;outline-offset:4px;border-radius:10px}
+.plot-panel{background:white;border:1px solid #e0e5da;border-radius:10px;overflow:hidden}
+.plot-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:23px 24px 0}
+.plot-header h3,.key-header h3{font-size:14px;font-weight:550;color:#405b3e;margin:0 0 8px;letter-spacing:-.15px}
+.plot-header p,.key-header p{font-size:11px;color:#8b9881;line-height:1.7;margin:0}
+.plot-header .secondary-button{flex-shrink:0}
+.motif-plot-canvas{max-width:100%;overflow-x:auto;padding:8px 16px 0}
+.motif-plot-canvas svg{display:block;width:100%;height:auto;min-width:600px}
+.plot-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 24px;font-size:10px;color:#7c8c71;border-top:1px solid #edf1e7}
+.plot-note{margin:0;border-top:1px solid #edf1e7;padding:14px 24px;background:#fcfdf9;font-size:10px;line-height:1.8;color:#929d89}
+.key-header{padding:22px 23px 20px}
+.table-meta.annotation-table-meta{flex-direction:row;flex-wrap:wrap;align-items:center}
+.table-meta-copy{display:flex;flex:1 1 220px;flex-direction:column;gap:7px;min-width:0}
+.table-meta-copy>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.annotation-table-meta .secondary-button{flex-shrink:0}
+.motif-key-table{min-width:520px}
+.motif-key-table th:nth-child(1){width:16%}.motif-key-table th:nth-child(2){width:36%}.motif-key-table th:nth-child(3){width:16%}.motif-key-table th:nth-child(4){width:14%}.motif-key-table th:nth-child(5){width:18%}
+.key-id{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:#547044;line-height:1.7}
+.motif-swatch{height:13px;width:13px;flex-shrink:0;border-radius:3px;box-shadow:inset 0 0 0 1px #0000000a}
+@media(max-width:540px){.output-tabs{gap:2px;padding:3px;margin-top:16px}.output-tab{font-size:10px;padding:10px 12px}.plot-header{flex-direction:column;gap:13px;padding:19px 16px 0}.plot-header h3,.key-header h3{font-size:12px}.plot-header p,.key-header p{font-size:10px}.motif-plot-canvas{padding:7px 4px 0}.plot-footer{padding:13px 16px;font-size:9px}.plot-note{padding:12px 16px;font-size:9px}.key-header{padding:19px 16px 17px}}
+*{box-sizing:border-box}body{margin:0}button,textarea{font:inherit}button,a,summary,textarea{-webkit-tap-highlight-color:transparent}button{cursor:pointer}button:disabled{cursor:default}button:focus-visible,a:focus-visible,summary:focus-visible,.table-scroll:focus-visible{outline:3px solid #83b69b;outline-offset:4px}[hidden]{display:none!important}.site-header{height:82px;border-bottom:1px solid var(--line);background:#fafbf8}.header-inner{max-width:1200px;height:100%;margin:auto;padding:0 30px;display:flex;align-items:center;gap:26px}.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#245c45;font-size:31px;font-weight:750;letter-spacing:-1.6px}.brand svg{width:29px;height:29px}.brand-dot{color:#75a68a}.header-divider{height:22px;width:1px;background:#d8dfd7}.active-nav{font-size:13px;font-weight:550;color:#435c4e}.prototype-tag{margin-left:auto;font-size:12px;color:#677b6c;display:flex;gap:8px;align-items:center}.prototype-tag>span:first-child{width:6px;height:6px;background:#7b9d80;border-radius:50%}.version{font-family:var(--mono);color:#8b968d;font-size:10px;border:1px solid var(--line);padding:3px 6px;border-radius:4px}main{max-width:1200px;margin:auto;padding:42px 30px 0}.intro{margin-bottom:31px}.eyebrow{font-size:10px;letter-spacing:1.8px;font-weight:650;color:#728574;margin:0 0 13px}h1{font-size:36px;line-height:1.2;letter-spacing:-1.15px;font-weight:600;margin:0 0 11px}h1>span{color:#78a082}.intro-description{color:#778279;font-size:14px;margin:0;line-height:1.6}.input-panel{border:1px solid #dce3d9;border-radius:12px;background:white;box-shadow:0 3px 12px #25352603}.panel-heading{padding:22px 26px 20px;display:flex;justify-content:space-between;align-items:center}.section-heading{display:flex;gap:12px;align-items:center}.section-number{font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:#849580;background:#eef2e9;border:1px solid #e0e6d9;border-radius:5px;padding:5px 6px}h2{font-size:15px;font-weight:600;letter-spacing:-.2px;margin:0}.input-actions{display:flex;align-items:center;gap:15px}.text-button{background:none;border:0;padding:4px 0;color:#426e53;font-size:12px;line-height:1.5}.text-button:hover{color:#173f2b}.text-button span{margin-left:4px}.text-button.muted{color:#899188}.action-divider{height:12px;width:1px;background:var(--line)}.input-grid{padding:0 26px 24px;display:grid;grid-template-columns:1.75fr 1fr;gap:24px}.field{min-width:0}.field-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}label{font-size:12px;font-weight:600;color:#415648}.field-format{font-size:10px;color:#94a091}textarea{width:100%;resize:vertical;min-height:130px;height:136px;max-height:600px;border:1px solid #dfe5dc;border-radius:7px;background:#fbfcf9;padding:15px 16px;color:#395542;line-height:1.7;letter-spacing:1.2px;font-family:var(--mono);font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s}textarea::placeholder{color:#a0aaa0;letter-spacing:0;font-size:12px}textarea:focus{border-color:#7d9f83;box-shadow:0 0 0 3px #eaf1e7}.field-footer{display:flex;justify-content:space-between;gap:14px;font-size:10px;color:#8e998b;margin-top:8px;line-height:1.6}.input-count{color:#657b63;white-space:nowrap;font-family:var(--mono)}.form-bottom{display:flex;align-items:center;justify-content:space-between;gap:15px;border-top:1px solid #edf0e9;padding:17px 26px;background:#fdfefb;border-radius:0 0 12px 12px}.local-note{display:flex;align-items:center;gap:7px;font-size:10px;color:#8a9687}.local-note svg{height:15px;width:15px;color:#899e81}.run-actions{display:flex;align-items:center;gap:20px}.primary-button{display:flex;justify-content:center;align-items:center;gap:25px;background:var(--green);color:white;border:1px solid var(--green);border-radius:7px;font-weight:550;padding:12px 17px;font-size:12px;min-width:192px;transition:background .15s}.primary-button svg{height:17px;width:17px}.primary-button:hover{background:#184d36}.primary-button:disabled{opacity:.7}.primary-button.working svg{animation:pulse .8s infinite alternate}.error-message{margin:0 26px 20px;padding:12px 15px;background:#fff4ef;border:1px solid #ecd3c7;border-radius:6px;color:#9b4e32;font-size:12px;line-height:1.6}.results-section{margin-top:32px}.results-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:19px}.example-badge{font-size:10px;font-weight:500;border:1px solid #e2e7dc;border-radius:4px;background:#f1f3eb;color:#859076;padding:4px 7px;margin-left:2px}.secondary-button{display:flex;align-items:center;gap:8px;font-size:11px;color:#5a705e;background:#fcfdf9;border:1px solid #dce3d7;border-radius:6px;padding:9px 12px}.secondary-button svg{height:15px;width:15px}.secondary-button:hover:not(:disabled){background:#ecf1e7}.secondary-button:disabled{opacity:.45}.summary-strip{display:grid;grid-template-columns:repeat(4,1fr);padding:21px 0;border:1px solid #dfe5d9;border-radius:9px;background:#eef2e9;margin-bottom:16px}.summary-item{border-right:1px solid #d9e1d1;padding:0 26px}.summary-item:last-child{border-right:0}.summary-label{font-size:9px;letter-spacing:1.05px;color:#849079;display:block;margin-bottom:8px;font-weight:550}.summary-value{display:flex;align-items:baseline;font-size:25px;font-weight:500;letter-spacing:-.9px;line-height:1.1;font-variant-numeric:tabular-nums;color:#365339}.summary-value small{font-size:11px;font-weight:400;color:#8b967e;letter-spacing:0;margin-left:7px}.table-panel{background:white;border:1px solid #e0e5da;border-radius:10px;overflow:hidden}.table-meta{padding:17px 21px;font-size:10px;color:#8c9687;display:flex;justify-content:space-between;align-items:center;gap:20px}.table-meta>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#result-name{color:#617359;font-weight:500}.meta-dot{padding:0 9px;color:#bcc4b6}.coordinate-note{white-space:nowrap;font-size:9px}.coordinate-icon{color:#8b9e80;font-size:12px;margin-right:4px}.table-scroll{overflow-x:auto;max-width:100%}table{width:100%;border-collapse:collapse;min-width:650px;text-align:left;table-layout:fixed}th{font-size:9px;text-transform:uppercase;letter-spacing:.8px;font-weight:500;color:#8b9685;background:#fafbf7;padding:12px 21px;border-top:1px solid #edf0e7;border-bottom:1px solid #e8ede2}th:nth-child(1){width:9%}th:nth-child(2){width:12%}th:nth-child(3){width:18%}th:nth-child(4),th:nth-child(5){width:9%}th:nth-child(6){width:29%}th:nth-child(7){width:14%}td{padding:15px 21px;border-bottom:1px solid #f0f2ec;font-size:12px;color:#61715a;vertical-align:top}tr:last-child td{border-bottom:0}tbody tr:hover{background:#fcfdf9}.copy-number{font-family:var(--mono);font-size:10px;color:#a1aa98}.numeric{text-align:right;font-variant-numeric:tabular-nums}.mono{font-family:var(--mono);font-size:11px;line-height:1.7;overflow-wrap:anywhere}.motif-chip{border-radius:4px;padding:4px 7px;font-size:10px;font-weight:550;white-space:nowrap;background:var(--chip-bg);color:var(--chip-color)}.motif-ref{color:#61735a}.observed-sequence{color:#3b6245;font-size:12px;letter-spacing:1px}.match-state{display:flex;align-items:center;gap:7px;font-size:10px;line-height:1.7;white-space:nowrap}.match-state:before,.exact-dot,.variant-dot{content:"";height:5px;width:5px;border-radius:50%;display:inline-block;flex-shrink:0}.match-state.exact{color:#739267}.match-state.exact:before,.exact-dot{background:#8aaa77}.match-state.variant{color:#b08b55}.match-state.variant:before,.variant-dot{background:#c4a16b}.table-footer{min-height:46px;border-top:1px solid #edf0e7;background:#fdfefa;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 21px;font-size:9px;color:#929c88}.table-key{display:flex;gap:6px;align-items:center}.table-key .variant-dot{margin-left:10px}.pagination{display:flex;align-items:center;gap:10px}.page-button{border:1px solid #dfe5d7;border-radius:4px;background:white;color:#5d7554;padding:3px 7px}.page-button:disabled{opacity:.35}.empty-state{border:1px dashed #dce3d4;border-radius:10px;min-height:222px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#95a08d;background:#f9faf6;text-align:center;padding:24px}.empty-icon{font-size:36px;line-height:1;color:#a5b59a}.empty-state p{font-size:13px;color:#6c7e62;margin:14px 0 7px}.empty-state>span:last-child{font-size:11px}.method-details{margin-top:20px;border-top:1px solid #e0e6da;border-bottom:1px solid #e0e6da;color:#829178}.method-details summary{list-style:none;display:flex;align-items:center;gap:8px;font-size:10px;cursor:pointer;padding:17px 1px;user-select:none}.method-details summary::-webkit-details-marker{display:none}.info-icon{display:flex;align-items:center;justify-content:center;width:13px;height:13px;border:1px solid #a4b099;border-radius:50%;font-family:serif;font-size:9px}.details-plus{margin-left:auto;font-size:16px;font-weight:300;color:#9ca98e}.method-details[open] .details-plus{transform:rotate(45deg)}.method-copy{padding:0 0 12px;font-size:11px;line-height:1.9;color:#7b8972}.method-copy p{margin:0 0 10px}.site-footer{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 0 25px;font-size:9px;color:#9ca691}.site-footer>span:first-child{font-size:16px;color:#8d9d7e;font-weight:600;letter-spacing:-.7px;display:flex;align-items:baseline}.footer-dot{color:#b0bea1}.footer-description{font-size:9px;font-weight:400;letter-spacing:0;margin-left:14px;color:#9ca691}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.noscript-note{padding:24px;text-align:center;color:#95503c}@keyframes pulse{from{opacity:1}to{opacity:.25}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}@media(min-width:1500px){main{padding-top:56px}.intro{margin-bottom:38px}.results-section{margin-top:38px}}@media(max-width:800px){th,td{padding-left:14px;padding-right:14px}.header-inner{padding:0 22px;gap:18px}main{padding:30px 22px 0}h1{font-size:30px}.input-grid{grid-template-columns:1.5fr 1fr;gap:16px;padding:0 20px 22px}.field-heading{flex-direction:column;align-items:flex-start;gap:5px}.field-footer{flex-direction:column-reverse;gap:3px}.panel-heading{padding:20px}.form-bottom{padding:16px 20px}.summary-item{padding:0 20px}.table-meta{align-items:flex-start;flex-direction:column;gap:7px}.coordinate-note{font-size:9px}.example-badge{margin-left:0}.table-key{display:none}}@media(max-width:540px){.site-header{height:67px}.header-inner{padding:0 18px;gap:14px}.brand{font-size:27px;gap:8px}.brand svg{width:23px;height:23px}.active-nav{font-size:10px}.prototype-tag{font-size:10px}.prototype-tag .version{display:none}.header-divider{height:18px}main{padding:27px 16px 0}.eyebrow{font-size:9px;letter-spacing:1.4px}h1{font-size:29px;letter-spacing:-1px;max-width:330px;line-height:1.17}.intro-description{font-size:12px;max-width:285px}.intro{margin-bottom:25px}.panel-heading{padding:18px 16px}.section-heading{gap:8px}h2{font-size:13px}.section-number{font-size:9px;padding:4px 5px}.input-actions{gap:11px}.text-button{font-size:10px}.input-grid{grid-template-columns:1fr;padding:0 16px 20px;gap:20px}.field-heading{flex-direction:row;align-items:center}.field-format{font-size:9px}.field-footer{flex-direction:row;gap:12px;font-size:9px}textarea{height:114px;min-height:100px;font-size:13px}#motif-sequences{height:90px;min-height:80px}.form-bottom{align-items:stretch;flex-direction:column-reverse;gap:12px;padding:15px 16px}.run-actions{width:100%;justify-content:flex-end}.primary-button{width:100%;padding:12px 15px}.local-note{justify-content:center;font-size:9px}.error-message{margin:0 16px 16px;font-size:11px}.results-section{margin-top:27px}.results-heading{gap:8px;align-items:flex-start}.results-heading .section-heading{flex-wrap:wrap;row-gap:6px}.example-badge{font-size:8px;padding:3px 5px}.secondary-button{font-size:9px;padding:7px 9px;white-space:nowrap}.secondary-button svg{width:12px;height:12px}.summary-strip{padding:17px 0;row-gap:21px;grid-template-columns:repeat(2,1fr)}.summary-item{padding:0 20px}.summary-item:nth-child(2){border-right:0}.summary-label{font-size:8px;letter-spacing:.7px;margin-bottom:7px}.summary-value{font-size:24px}.summary-value small{font-size:10px}.table-meta{padding:14px 16px}.table-footer{padding:11px 16px;font-size:8px;gap:7px}.page-button{padding:3px 6px}.pagination{gap:6px}.site-footer{align-items:flex-start;font-size:8px;gap:15px}.footer-description{display:none}.method-copy{font-size:10px;padding:0 0 8px}.method-details summary{font-size:9px}.site-footer>span:first-child{font-size:15px}}
+
+/* Batch queries keep copy columns and per-query identities readable. */
+#tr-sequence{height:244px;min-height:180px}
+
+.batch-summary .summary-item{padding:0 20px}
+.annotation-table{min-width:800px}
+.annotation-table th:nth-child(1){width:14%}.annotation-table th:nth-child(2){width:7%}.annotation-table th:nth-child(3){width:10%}.annotation-table th:nth-child(4){width:14%}.annotation-table th:nth-child(5){width:8%}.annotation-table th:nth-child(6){width:8%}.annotation-table th:nth-child(7){width:26%}.annotation-table th:nth-child(8){width:13%}
+.sequence-id{color:#52694c;overflow-wrap:anywhere}
+
+@media(max-width:540px){.field-footer{flex-wrap:wrap}.coordinate-note{white-space:normal}}
+
+/* Keep each query's summary on its own row, in the same order as the plots. */
+.sequence-summary-panel{margin-bottom:16px;border:1px solid #dfe5d9;border-radius:9px;background:#eef2e9;overflow:hidden}
+.sequence-summary-scroll{max-width:100%;overflow-x:auto}
+.sequence-summary-scroll:focus-visible{outline:3px solid #83b69b;outline-offset:-3px}
+.sequence-summary-table{min-width:560px}
+.sequence-summary-table th:nth-child(1){width:24%}
+.sequence-summary-table th:nth-child(2){width:17%}
+.sequence-summary-table th:nth-child(3),.sequence-summary-table th:nth-child(4){width:18%}
+.sequence-summary-table th:nth-child(5){width:23%}
+.sequence-summary-table thead th{padding:14px 20px 12px;background:transparent;border-top:0;border-bottom:1px solid #d9e1d1;color:#7d8c72;font-size:9px;letter-spacing:.7px;white-space:nowrap}
+.sequence-summary-table tbody th,.sequence-summary-table tbody td{padding:14px 20px;border-bottom:1px solid #dfe6d7;background:transparent;vertical-align:middle;color:#365339}
+.sequence-summary-table tbody th{font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;border-top:0}
+.sequence-summary-table tbody td{font-size:17px;font-weight:500;line-height:1.3;font-variant-numeric:tabular-nums}
+.sequence-summary-table tbody tr:last-child th,.sequence-summary-table tbody tr:last-child td{border-bottom:0}
+.sequence-summary-table tbody tr:hover{background:#f3f6ee}
+@media(max-width:800px){.sequence-summary-table thead th,.sequence-summary-table tbody th,.sequence-summary-table tbody td{padding-left:16px;padding-right:16px}}
+@media(max-width:540px){.sequence-summary-table tbody td{font-size:15px}.sequence-summary-table tbody th{font-size:10px}}
+</style>
+  
+</head>
+<body>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">TANDEM REPEAT ANALYSIS</p>
+      <h1 id="page-title">Annotate tandem repeats<span>.</span></h1>
+    </section>
+
+    <form id="annotation-form" class="input-panel" novalidate>
+      <div class="panel-heading">
+        <div class="section-heading"><span class="section-number">01</span><h2>Sequence & motifs</h2></div>
+        <div class="input-actions"><button type="button" class="text-button" id="load-example">Load example <span aria-hidden="true">↗</span></button><span class="action-divider"></span><button type="button" class="text-button muted" id="clear-input">Clear</button></div>
+      </div>
+      <div class="input-grid">
+        <div class="field">
+          <div class="field-heading"><label for="tr-sequence">TR sequences</label><span class="field-format">Multi-record FASTA or one query per line</span></div>
+          <textarea id="tr-sequence" name="sequences" spellcheck="false" autocapitalize="characters" autocomplete="off" placeholder="&gt;Sequence_1&#10;ACTACT…&#10;&gt;Sequence_2&#10;ACTAC…" aria-describedby="sequence-help">>Sequence_1
+ACTACACTAGTATACTACTAGTAGTACACTAGTACTACTAG
+>Sequence_2
+ACTACTACTAGTATACTACTAGTAGTACACTAGTACTACTAG
+>Sequence_3
+ACTACACTACTAGTATACTACTAGTAGTACACTAGTACTACTAG</textarea>
+          <div class="field-footer"><span id="sequence-help">Use FASTA headers for named or wrapped queries.</span><span id="sequence-count" class="input-count">3 queries · 127 bp</span></div>
+        </div>
+        <div class="field">
+          <div class="field-heading"><label for="motif-sequences">Motifs</label><span class="field-format">Shared by all queries, in your preferred order</span></div>
+          <textarea id="motif-sequences" name="motifs" spellcheck="false" autocapitalize="characters" autocomplete="off" placeholder="ACT,AC" aria-describedby="motifs-help">ACT,AC</textarea>
+          <div class="field-footer"><span id="motifs-help">Separate with newlines, spaces, or commas.</span><span id="motif-count" class="input-count">2 motifs</span></div>
+        </div>
+      </div>
+      <div id="startup-message" class="error-message" role="status">The annotation tool has not initialized. If this message remains, open the downloaded HTML file in a browser with JavaScript enabled.</div>
+      <div id="input-error" class="error-message" role="alert" hidden></div>
+      <div class="form-bottom">
+        <span class="local-note"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 9V6a3 3 0 0 1 6 0v3" stroke="currentColor" stroke-width="1.4"/></svg>Your sequences stay in this browser.</span>
+        <div class="run-actions"><button type="button" id="cancel-run" class="text-button" hidden>Cancel</button><button type="button" id="annotate-button" class="primary-button" disabled><span id="annotate-label">Annotate sequences</span><svg id="run-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+      </div>
+    </form>
+
+    <section id="results-section" class="results-section" aria-labelledby="results-title" aria-busy="false">
+      <div class="results-heading">
+        <div class="section-heading"><span class="section-number">02</span><h2 id="results-title">Annotation results</h2><span id="result-badge" class="example-badge" hidden>Example result</span></div>
+      </div>
+      <div id="empty-state" class="empty-state"><span class="empty-icon" aria-hidden="true">≋</span><p id="empty-message">Your annotations will appear here.</p><span id="empty-detail">Enter query sequences and motifs, then run the annotation.</span></div>
+      <div id="result-content" hidden>
+        <div class="sequence-summary-panel">
+          <div class="sequence-summary-scroll" tabindex="0" role="region" aria-label="Per-sequence annotation summaries. Scroll horizontally on small screens.">
+            <table class="sequence-summary-table">
+              <caption class="sr-only">Individual summary for each sequence in input order. Motifs used counts distinct assigned motifs out of the shared input set.</caption>
+              <thead><tr><th scope="col">Sequence ID</th><th scope="col" class="numeric">Length (bp)</th><th scope="col" class="numeric">Motif copies</th><th scope="col" class="numeric">Motifs used</th><th scope="col" class="numeric">Alignment score</th></tr></thead>
+              <tbody id="sequence-summary-rows"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="output-tabs" class="output-tabs" role="tablist" aria-label="Annotation output">
+          <button type="button" id="tab-plot" class="output-tab" role="tab" aria-selected="true" aria-controls="panel-plot" tabindex="0">Motif Plot</button>
+          <button type="button" id="tab-key" class="output-tab" role="tab" aria-selected="false" aria-controls="panel-key" tabindex="-1">Motif ID Key</button>
+          <button type="button" id="tab-annotation" class="output-tab" role="tab" aria-selected="false" aria-controls="panel-annotation" tabindex="-1">Annotation Table</button>
+        </div>
+        <div id="panel-annotation" class="output-panel" role="tabpanel" aria-labelledby="tab-annotation" tabindex="0" hidden>
+        <div class="table-panel">
+          <div class="table-meta annotation-table-meta">
+            <div class="table-meta-copy"><span><span id="result-name">3 queries</span><span class="meta-dot">·</span><span id="match-summary"></span></span><span class="coordinate-note"><span class="coordinate-icon" aria-hidden="true">↔</span> 0-based, end-exclusive coordinates within each sequence</span></div>
+            <button type="button" id="download-tsv" class="secondary-button" disabled><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v9m-3-3 3 3 3-3M4 13v4h12v-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Download TSV</button>
+          </div>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="Motif annotation table. Scroll horizontally on small screens.">
+            <table class="annotation-table">
+              <caption class="sr-only">Each row is one motif copy from the indicated query. Copy numbers and zero-based, end-exclusive coordinates restart for each sequence.</caption>
+              <thead><tr><th scope="col">Sequence ID</th><th scope="col">Copy</th><th scope="col">Motif ID</th><th scope="col">Reference motif</th><th scope="col" class="numeric">Start</th><th scope="col" class="numeric">End</th><th scope="col">Observed sequence</th><th scope="col">Match</th></tr></thead>
+              <tbody id="annotation-rows"></tbody>
+            </table>
+          </div>
+          <div class="table-footer"><span id="row-summary"></span><div class="pagination" id="pagination" hidden><button type="button" id="previous-page" class="page-button" aria-label="Previous page">←</button><span id="page-label"></span><button type="button" id="next-page" class="page-button" aria-label="Next page">→</button></div><span class="table-key"><span class="exact-dot"></span>Exact<span class="variant-dot"></span>Variant</span></div>
+        </div>
+        </div>
+        <div id="panel-plot" class="output-panel" role="tabpanel" aria-labelledby="tab-plot" tabindex="0">
+          <div class="plot-panel">
+            <div class="plot-header">
+              <div><h3>Compare motif copy order</h3><p>Queries are stacked in input order. Matching copy positions share the same column and scale.</p></div>
+              <button type="button" id="download-svg" class="secondary-button" disabled><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v9m-3-3 3 3 3-3M4 13v4h12v-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="svg-download-label">Download SVG</span></button>
+            </div>
+            <div id="plot-container" class="motif-plot-canvas"></div>
+            <div class="plot-footer"><span id="plot-range-summary"></span><div id="plot-pagination" class="pagination" hidden><button type="button" id="plot-previous-page" class="page-button" aria-label="Previous plot page">←</button><span id="plot-page-label"></span><button type="button" id="plot-next-page" class="page-button" aria-label="Next plot page">→</button></div></div>
+            <p class="plot-note">One block represents one motif copy. Read left to right, then down within each query. Copy numbers and coordinates restart for each sequence. Hover for details; see Motif ID Key for the shared color encoding.</p>
+          </div>
+        </div>
+        <div id="panel-key" class="output-panel" role="tabpanel" aria-labelledby="tab-key" tabindex="0" hidden>
+          <div class="table-panel">
+            <div class="key-header"><h3>Motif ID encoding</h3><p>IDs follow the shared motif input order. Counts and shares include all query sequences; unused motifs are included.</p></div>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Motif ID encoding table. Scroll horizontally on small screens.">
+              <table class="motif-key-table"><caption class="sr-only">Input motif IDs, reference sequences, lengths, assigned copy counts, and percentage of annotated copies.</caption><thead><tr><th scope="col">Motif ID</th><th scope="col">Reference motif</th><th scope="col" class="numeric">Length (bp)</th><th scope="col" class="numeric">Copies</th><th scope="col" class="numeric">Share of copies</th></tr></thead><tbody id="motif-key-rows"></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="sr-only" id="status-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <details class="method-details">
+      <summary><span class="info-icon" aria-hidden="true">i</span>About this annotation<span class="details-plus" aria-hidden="true">+</span></summary>
+      <div class="method-copy"><p>Annotation uses the string decomposition algorithm. Matches score 0; mismatches and indels each score −1. Motif IDs (M1, M2, …) follow your input order, and earlier motifs win ties. “Variant” means the observed chunk differs from its assigned reference motif; it is not a confidence estimate.</p></div>
+    </details>
+    <footer class="site-footer">Tandem repeat motif annotation</footer>
+  </main>
+  <noscript><p class="noscript-note">Enable JavaScript to run motif annotation in your browser.</p></noscript>
+<script>(function () {
+"use strict";
+const DNA = /^[ACGTRYSWKMBDHVN]+$/;
+
+const INPUT_LIMITS = Object.freeze({ maxSequences: 100, maxTotalBases: 100000 });
+
+function inputError(field, message) {
+  const error = new Error(message);
+  error.field = field;
+  return error;
+}
+
+function requireText(value, field, label) {
+  if (typeof value !== 'string') {
+    throw inputError(field, `${label} must be supplied as text.`);
+  }
+  return value.trim();
+}
+
+function validateDNA(value, field, label) {
+  if (!DNA.test(value)) {
+    const invalid = [...value].find((base) => !DNA.test(base));
+    throw inputError(
+      field,
+      `${label} contains an unsupported DNA character (${JSON.stringify(invalid)}). Use A, C, G, T, or the IUPAC DNA codes R, Y, S, W, K, M, B, D, H, V, N.`,
+    );
+  }
+}
+
+/** Parse one query per plain-DNA line or multiline FASTA records and shared motifs. */
+function parseInput(sequenceText, motifsText) {
+  const text = requireText(sequenceText, 'sequence', 'The TR sequences');
+  if (!text) {
+    throw inputError('sequence', 'Enter at least one TR sequence, one plain DNA query per line or as FASTA records.');
+  }
+
+  const sequences = [];
+  const ids = new Set();
+  let totalBases = 0;
+  function addSequence(id, name, value) {
+    if (sequences.length >= INPUT_LIMITS.maxSequences) {
+      throw inputError('sequence', `Enter at most ${INPUT_LIMITS.maxSequences} query sequences per annotation.`);
+    }
+    if (ids.has(id)) {
+      throw inputError('sequence', `Sequence ID ${JSON.stringify(id)} is repeated. Use a unique ID in each FASTA header.`);
+    }
+    const sequence = value.replace(/\s/g, '').toUpperCase();
+    if (!sequence) {
+      throw inputError('sequence', `Sequence ${JSON.stringify(id)} has no TR sequence. Add DNA bases below its FASTA header.`);
+    }
+    validateDNA(sequence, 'sequence', `Sequence ${JSON.stringify(id)}`);
+    totalBases += sequence.length;
+    if (totalBases > INPUT_LIMITS.maxTotalBases) {
+      throw inputError('sequence', `Query sequences contain more than ${INPUT_LIMITS.maxTotalBases.toLocaleString('en-US')} total DNA bases. Shorten the queries or split them into smaller batches.`);
+    }
+    ids.add(id);
+    sequences.push({ id, name, sequence });
+  }
+
+  const lines = text.split(/\r\n|\n|\r/);
+  if (lines.some((line) => line.trimStart().startsWith('>'))) {
+    let record = null;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (trimmed.startsWith('>')) {
+        if (record) addSequence(record.id, record.name, record.lines.join(''));
+        const name = trimmed.slice(1).trim();
+        if (!name) {
+          throw inputError('sequence', 'A FASTA header has no sequence ID. Give each record a unique header, such as >Sequence_1.');
+        }
+        const id = name.split(/\s/, 1)[0];
+        record = { id, name, lines: [] };
+      } else {
+        if (!record) {
+          throw inputError('sequence', 'DNA appears before the first FASTA header. Add a header such as >Sequence_1 above the first query, or enter all queries as one plain DNA sequence per line.');
+        }
+        record.lines.push(trimmed);
+      }
+    }
+    if (record) addSequence(record.id, record.name, record.lines.join(''));
+  } else {
+    lines.filter((line) => line.trim()).forEach((line, index) => {
+      addSequence(`Sequence_${index + 1}`, null, line);
+    });
+  }
+
+  const motifText = requireText(motifsText, 'motifs', 'The motifs');
+  if (motifText.includes('>')) {
+    throw inputError('motifs', 'Enter motifs as plain DNA strings separated by spaces, commas, or new lines. FASTA headers are not supported for motifs.');
+  }
+  const motifs = motifText.split(/[\s,]+/).filter(Boolean).map((motif) => motif.toUpperCase());
+  if (motifs.length === 0) {
+    throw inputError('motifs', 'Enter at least one motif as a plain DNA string. Separate multiple motifs with spaces, commas, or new lines.');
+  }
+  motifs.forEach((motif, index) => validateDNA(motif, 'motifs', `Motif ${index + 1}`));
+
+  return { sequences, motifs };
+}
+
+/** Default stringDecomposition scoring, including the reference's initialization. */
+const LIMITS = Object.freeze({
+  maxSequenceLength: 100_000,
+  maxMotifs: 256,
+  maxTotalMotifLength: 20_000,
+  maxCells: 20_000_000,
+});
+
+const RIGHT = 0;
+const DOWN = 1;
+const DIAGONAL = 2;
+
+/**
+ * Partition a sequence into copies of the supplied motifs.
+ *
+ * This ports stringDecomposer from seqDecompose.py at its default penalties:
+ * match = 0, mismatch = 1, indel = 1. The reference's first-column scores
+ * (-rowIndex), first-row insertion transition, and tie rules are intentional.
+ * Coordinates are zero-based, end-exclusive, and motifIndex uses input order.
+ *
+ * Scores use two rolling columns. Only directions and boundary motif IDs are
+ * retained for traceback, so the full cell budget costs approximately 20 MB.
+ */
+function decompose(sequence, motifs) {
+  if (typeof sequence !== 'string' || sequence.length === 0) {
+    throw new Error('Enter a nonempty tandem repeat sequence.');
+  }
+  if (!Array.isArray(motifs) || motifs.length === 0) {
+    throw new Error('Enter at least one nonempty motif.');
+  }
+  if (motifs.some((motif) => typeof motif !== 'string' || motif.length === 0)) {
+    throw new Error('Each motif must be a nonempty sequence.');
+  }
+  if (sequence.length > LIMITS.maxSequenceLength) {
+    throw new Error(`This prototype accepts up to ${LIMITS.maxSequenceLength.toLocaleString('en-US')} sequence bases.`);
+  }
+  if (motifs.length > LIMITS.maxMotifs) {
+    throw new Error(`This prototype accepts up to ${LIMITS.maxMotifs} motifs.`);
+  }
+
+  const sequenceLength = sequence.length;
+  const columns = sequenceLength + 1;
+  const totalMotifLength = motifs.reduce((sum, motif) => sum + motif.length, 0);
+  if (totalMotifLength > LIMITS.maxTotalMotifLength) {
+    throw new Error(`The combined motif length must be at most ${LIMITS.maxTotalMotifLength.toLocaleString('en-US')} bases.`);
+  }
+  const cellCount = columns * totalMotifLength;
+  if (cellCount > LIMITS.maxCells) {
+    throw new Error(`This input needs ${cellCount.toLocaleString('en-US')} alignment cells; the prototype limit is ${LIMITS.maxCells.toLocaleString('en-US')}. Shorten the sequence or reduce the motif set.`);
+  }
+
+  const offsets = new Uint32Array(motifs.length);
+  let rowOffset = 0;
+  for (let motifIndex = 0; motifIndex < motifs.length; motifIndex += 1) {
+    offsets[motifIndex] = rowOffset;
+    rowOffset += motifs[motifIndex].length;
+  }
+
+  let previous = new Int32Array(totalMotifLength);
+  let current = new Int32Array(totalMotifLength);
+  const trace = new Uint8Array(cellCount);
+  const boundaryMotifs = new Uint32Array(columns);
+  let boundaryScore = 0;
+  let finalMotifIndex = 0;
+
+  for (let motifIndex = 0; motifIndex < motifs.length; motifIndex += 1) {
+    const offset = offsets[motifIndex];
+    for (let row = 0; row < motifs[motifIndex].length; row += 1) {
+      previous[offset + row] = -row;
+      trace[(offset + row) * columns] = DOWN;
+    }
+  }
+
+  for (let column = 1; column <= sequenceLength; column += 1) {
+    let bestCompletedScore = -Infinity;
+    let bestCompletedMotif = 0;
+    const base = sequence.charCodeAt(column - 1);
+
+    for (let motifIndex = 0; motifIndex < motifs.length; motifIndex += 1) {
+      const motif = motifs[motifIndex];
+      const offset = offsets[motifIndex];
+      for (let row = 0; row < motif.length; row += 1) {
+        const flatRow = offset + row;
+        const substitution = motif.charCodeAt(row) === base ? 0 : -1;
+        const diagonal = (row === 0 ? boundaryScore : previous[flatRow - 1]) + substitution;
+        const down = (row === 0 ? boundaryScore : current[flatRow - 1]) - 1;
+        const right = previous[flatRow] - 1;
+
+        // Equal scores prefer diagonal, then down, then right.
+        if (diagonal >= down && diagonal >= right) {
+          current[flatRow] = diagonal;
+          trace[flatRow * columns + column] = DIAGONAL;
+        } else if (down >= diagonal && down >= right) {
+          current[flatRow] = down;
+          trace[flatRow * columns + column] = DOWN;
+        } else {
+          current[flatRow] = right;
+          trace[flatRow * columns + column] = RIGHT;
+        }
+      }
+
+      const completedScore = current[offset + motif.length - 1];
+      // Strict comparison preserves the earlier input motif on ties.
+      if (completedScore > bestCompletedScore) {
+        bestCompletedScore = completedScore;
+        bestCompletedMotif = motifIndex;
+      }
+    }
+
+    boundaryScore = bestCompletedScore;
+    boundaryMotifs[column] = bestCompletedMotif;
+    finalMotifIndex = bestCompletedMotif;
+    [previous, current] = [current, previous];
+  }
+
+  const motifIds = [finalMotifIndex];
+  const junctions = [sequenceLength];
+  let motifIndex = finalMotifIndex;
+  let row = motifs[motifIndex].length - 1;
+  let column = sequenceLength;
+
+  while (column > 0) {
+    const direction = trace[(offsets[motifIndex] + row) * columns + column];
+    if (row === 0) {
+      if (direction === RIGHT) {
+        column -= 1;
+      } else {
+        motifIndex = boundaryMotifs[column - 1];
+        row = motifs[motifIndex].length - 1;
+        if (column > 1) {
+          motifIds.push(motifIndex);
+          junctions.push(column - 1);
+        }
+        column -= 1;
+      }
+    } else if (direction === DIAGONAL) {
+      column -= 1;
+      row -= 1;
+    } else if (direction === DOWN) {
+      row -= 1;
+    } else {
+      column -= 1;
+    }
+  }
+
+  motifIds.reverse();
+  junctions.reverse();
+  const segments = motifIds.map((assignedMotifIndex, index) => {
+    const start = index === 0 ? 0 : junctions[index - 1];
+    const end = junctions[index];
+    const observed = sequence.slice(start, end);
+    return {
+      index: index + 1,
+      motifIndex: assignedMotifIndex,
+      motif: motifs[assignedMotifIndex],
+      start,
+      end,
+      sequence: observed,
+      exact: observed === motifs[assignedMotifIndex],
+    };
+  });
+
+  return { score: boundaryScore, segments, sequenceLength };
+}
+
+
+/** Run in a worker when available, with a local fallback for browser restrictions. */
+function createAnnotationTask(sequence, motifs, { createWorker, onResult, onError } = {}) {
+  let worker = null;
+  let timer = null;
+  let canceled = false;
+  let settled = false;
+  let fallbackStarted = false;
+
+  function stopWorker() {
+    const currentWorker = worker;
+    worker = null;
+    if (!currentWorker) return;
+    currentWorker.onmessage = null;
+    currentWorker.onerror = null;
+    currentWorker.onmessageerror = null;
+    try { currentWorker.terminate(); } catch { /* Cleanup must not interrupt the result. */ }
+  }
+
+  function finish(callback, value) {
+    if (canceled || settled) return;
+    settled = true;
+    stopWorker();
+    // Even a synchronous worker mock cannot call back before this task is returned.
+    timer = setTimeout(() => {
+      timer = null;
+      if (!canceled && typeof callback === 'function') callback(value);
+    }, 0);
+  }
+
+  function fallback() {
+    if (canceled || settled || fallbackStarted) return;
+    fallbackStarted = true;
+    stopWorker();
+    // Yield so the UI can show its busy state before local computation begins.
+    timer = setTimeout(() => {
+      timer = null;
+      if (canceled) return;
+      let result;
+      try { result = decompose(sequence, motifs); }
+      catch (error) {
+        finish(onError, error instanceof Error ? error : new Error(String(error)));
+        return;
+      }
+      finish(onResult, result);
+    }, 0);
+  }
+
+  try {
+    if (typeof createWorker !== 'function') {
+      fallback();
+    } else {
+      worker = createWorker();
+      if (!worker || typeof worker.postMessage !== 'function') {
+        throw new Error('Background annotation is unavailable.');
+      }
+      worker.onmessage = ({ data }) => {
+        if (canceled || settled || fallbackStarted) return;
+        if (data?.ok === true && data.result) {
+          finish(onResult, data.result);
+        } else if (data?.ok === false) {
+          finish(onError, new Error(data.error || 'Annotation failed. Please check your input.'));
+        } else {
+          fallback();
+        }
+      };
+      worker.onerror = (event) => {
+        event?.preventDefault?.();
+        fallback();
+      };
+      worker.onmessageerror = fallback;
+      worker.postMessage({ sequence, motifs });
+    }
+  } catch {
+    fallback();
+  }
+
+  return {
+    cancel() {
+      canceled = true;
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+      stopWorker();
+    },
+  };
+}
+
+// The first eight colors are a distinct, scientific-friendly palette. More
+// input IDs receive deterministic colors instead of cycling through this set.
+const BASE_MOTIF_COLORS = [
+  '#4477AA', '#EE7733', '#228833', '#CCBB44',
+  '#AA3377', '#66CCEE', '#EE6677', '#777777',
+];
+const MAX_PLOT_COPIES = 200;
+
+function escapeXml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
+  }[character]));
+}
+
+function hslToHex(hue, saturation, lightness) {
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const sector = hue / 60;
+  const secondary = chroma * (1 - Math.abs(sector % 2 - 1));
+  const offset = lightness - chroma / 2;
+  const rgb = sector < 1 ? [chroma, secondary, 0]
+    : sector < 2 ? [secondary, chroma, 0]
+      : sector < 3 ? [0, chroma, secondary]
+        : sector < 4 ? [0, secondary, chroma]
+          : sector < 5 ? [secondary, 0, chroma]
+            : [chroma, 0, secondary];
+  return `#${rgb.map((channel) => Math.round((channel + offset) * 255).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}
+
+function rgbChannels(hex) {
+  return [1, 3, 5].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16));
+}
+
+function relativeLuminance(hex) {
+  const channels = rgbChannels(hex).map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+}
+
+/** Colors are stable by the zero-based input motif index, including unused IDs. */
+function motifColor(motifIndex) {
+  const index = Math.max(0, Math.trunc(Number(motifIndex)) || 0);
+  const fill = BASE_MOTIF_COLORS[index] ?? hslToHex(
+    (index * 137.507764 + 23) % 360,
+    0.62,
+    [0.42, 0.52, 0.62][index % 3],
+  );
+  const luminance = relativeLuminance(fill);
+  const darkInk = '#000000';
+  const darkContrast = (luminance + 0.05) / (relativeLuminance(darkInk) + 0.05);
+  const whiteContrast = 1.05 / (luminance + 0.05);
+  const ink = darkContrast >= whiteContrast ? darkInk : '#FFFFFF';
+  const soft = `#${rgbChannels(fill).map((channel) => Math.round(channel * 0.11 + 255 * 0.89).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+  return { fill, ink, soft };
+}
+
+/** Include all supplied motifs in input order, retaining distinct duplicate IDs. */
+function buildMotifKey(result, motifs) {
+  const segments = result?.segments ?? [];
+  const counts = new Uint32Array(motifs.length);
+  for (const segment of segments) {
+    if (Number.isInteger(segment.motifIndex) && segment.motifIndex >= 0 && segment.motifIndex < motifs.length) {
+      counts[segment.motifIndex] += 1;
+    }
+  }
+  return motifs.map((motif, motifIndex) => ({
+    motifIndex,
+    motifId: `M${motifIndex + 1}`,
+    motif,
+    length: motif.length,
+    copies: counts[motifIndex],
+    proportion: segments.length ? counts[motifIndex] / segments.length : 0,
+    color: motifColor(motifIndex),
+  }));
+}
+
+function boundedInteger(value, fallback, minimum, maximum) {
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? Math.max(minimum, Math.min(maximum, Math.trunc(number)))
+    : fallback;
+}
+
+/**
+ * Equal-width motif copies, read from left to right and then down each row.
+ * Render at most 200 copies per page; start is zero-based in result.segments.
+ * Copy numbers and sequence coordinates remain global when viewing later pages.
+ */
+function buildMotifPlot(result, motifs, { start = 0, count = 200, copiesPerRow = 40 } = {}) {
+  const segments = result?.segments ?? [];
+  const pageStart = boundedInteger(start, 0, 0, segments.length);
+  const pageCount = boundedInteger(count, MAX_PLOT_COPIES, 0, MAX_PLOT_COPIES);
+  const pageEnd = Math.min(pageStart + pageCount, segments.length);
+  const visible = segments.slice(pageStart, pageEnd);
+  const columns = boundedInteger(copiesPerRow, 40, 1, 40);
+  const rowCount = Math.ceil(visible.length / columns);
+  const left = 76;
+  const right = 20;
+  const gap = 4;
+  const usedColumns = Math.max(1, Math.min(columns, visible.length));
+  const blockWidth = Math.min(64, Math.max(27, Math.floor((712 - left - right - (usedColumns - 1) * gap) / usedColumns)));
+  const width = Math.max(680, left + usedColumns * blockWidth + (usedColumns - 1) * gap + right);
+  const blockHeight = 34;
+  const rowHeight = 54;
+  const top = 72;
+  const height = visible.length ? top + rowCount * rowHeight + 19 : 140;
+  const firstCopy = visible[0]?.index ?? pageStart + 1;
+  const lastCopy = visible[visible.length - 1]?.index ?? pageEnd;
+  const rangeText = visible.length
+    ? `Copies ${firstCopy.toLocaleString('en-US')}\u2013${lastCopy.toLocaleString('en-US')} of ${segments.length.toLocaleString('en-US')}`
+    : 'No motif copies to display';
+  const markup = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(`Sequential motif IDs. ${rangeText}.`)}">`,
+    '<title>Sequential motif IDs</title>',
+    `<desc>${escapeXml(`${rangeText}. Each equal-width block is one annotated motif copy. Read left to right, then continue on the next row. Motif IDs follow the input order. Block width does not represent sequence length.`)}</desc>`,
+    `<rect width="${width}" height="${height}" fill="#FFFFFF"/>`,
+    '<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">',
+    '<text x="20" y="25" font-size="11" font-weight="600" fill="#52685A">COPY ORDER \u2192</text>',
+    `<text x="${width - right}" y="25" text-anchor="end" font-size="11" fill="#52685A">${escapeXml(rangeText)}</text>`,
+    '<text x="20" y="50" font-size="10" fill="#718174">Copy</text>',
+    `<text x="${left}" y="50" font-size="10" fill="#718174">Each block = one motif copy</text>`,
+  ];
+  if (!visible.length) {
+    markup.push('<text x="20" y="100" font-size="13" fill="#52685A">No motif copies to display.</text>');
+  }
+  for (let row = 0; row < rowCount; row += 1) {
+    const rowStart = row * columns;
+    const rowEnd = Math.min(rowStart + columns, visible.length);
+    const first = visible[rowStart].index ?? pageStart + rowStart + 1;
+    const last = visible[rowEnd - 1].index ?? pageStart + rowEnd;
+    const label = first === last ? String(first) : `${first}\u2013${last}`;
+    markup.push(`<text x="${left - 12}" y="${top + row * rowHeight + blockHeight / 2 + 4}" text-anchor="end" font-size="11" fill="#52685A">${escapeXml(label)}</text>`);
+  }
+  for (let offset = 0; offset < visible.length; offset += 1) {
+    const segment = visible[offset];
+    const copy = segment.index ?? pageStart + offset + 1;
+    const motifId = `M${segment.motifIndex + 1}`;
+    const reference = motifs[segment.motifIndex] ?? segment.motif ?? '';
+    const observed = segment.sequence ?? '';
+    const color = motifColor(segment.motifIndex);
+    const x = left + offset % columns * (blockWidth + gap);
+    const y = top + Math.floor(offset / columns) * rowHeight;
+    const fontSize = motifId.length > 3 ? 9 : 11;
+    const tooltip = `Copy ${copy} \u00b7 ${motifId} \u00b7 [${segment.start}, ${segment.end})\nObserved: ${observed}\nReference: ${reference}`;
+    markup.push(
+      `<g data-copy="${escapeXml(copy)}" data-motif-id="${escapeXml(motifId)}">`,
+      `<title>${escapeXml(tooltip)}</title>`,
+      `<rect x="${x}" y="${y}" width="${blockWidth}" height="${blockHeight}" rx="5" fill="${color.fill}"/>`,
+      `<text x="${x + blockWidth / 2}" y="${y + blockHeight / 2 + 4}" text-anchor="middle" font-size="${fontSize}" font-weight="600" fill="${color.ink}">${escapeXml(motifId)}</text>`,
+      '</g>',
+    );
+  }
+  markup.push('</g></svg>');
+  return markup.join('');
+}
+
+/**
+ * Compare queries in input order using the same motif colors and copy columns.
+ * The selected copy range applies to every query, including queries that have
+ * no copies in that range. All coordinates remain relative to their own query.
+ */
+function buildStackedMotifPlot(records, motifs, { start = 0, count = 200, copiesPerRow = 20 } = {}) {
+  const pageStart = boundedInteger(start, 0, 0, Number.MAX_SAFE_INTEGER);
+  const pageCount = boundedInteger(count, MAX_PLOT_COPIES, 0, MAX_PLOT_COPIES);
+  const columns = boundedInteger(copiesPerRow, 20, 1, 40);
+  const left = 76;
+  const right = 20;
+  const gap = 4;
+  // Use the complete column count, even when an individual query is short.
+  const blockWidth = Math.min(64, Math.max(27, Math.floor((712 - left - right - (columns - 1) * gap) / columns)));
+  const width = Math.max(712, left + columns * blockWidth + (columns - 1) * gap + right);
+  const blockHeight = 34;
+  const rowHeight = 54;
+  const recordsTop = 54;
+  const copiesTop = 78;
+  const recordsLayout = records.map((record) => {
+    const segments = record.result?.segments ?? [];
+    const visible = segments.slice(pageStart, pageStart + pageCount);
+    const rowCount = Math.ceil(visible.length / columns);
+    return { record, segments, visible, rowCount, height: copiesTop + Math.max(1, rowCount) * rowHeight + 12 };
+  });
+  const height = recordsLayout.length
+    ? recordsTop + recordsLayout.reduce((sum, item) => sum + item.height, 0) + 8
+    : 140;
+  const description = `${records.length.toLocaleString('en-US')} input sequences, shown in input order. Each equal-width block is one annotated motif copy. Read left to right, then continue on the next row for the same sequence. Copy positions and colors align across sequences. Motif IDs follow the shared input order. Block width does not represent sequence length. Sequence coordinates in tooltips are zero-based and end-exclusive within the named sequence.`;
+  const markup = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(`Sequential motif IDs for ${records.length} input sequences.`)}">`,
+    '<title>Sequential motif IDs by sequence</title>',
+    `<desc>${escapeXml(description)}</desc>`,
+    '<style>text{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.sequence-label{font-size:13px;font-weight:600;fill:#233D32}.plot-meta{font-size:11px;fill:#52685A}.copy-axis{font-size:10px;fill:#718174}</style>',
+    `<rect width="${width}" height="${height}" fill="#FFFFFF"/>`,
+    '<text x="20" y="25" font-size="11" font-weight="600" fill="#52685A">COPY ORDER →</text>',
+    `<text x="${width - right}" y="25" text-anchor="end" class="plot-meta">${records.length.toLocaleString('en-US')} ${records.length === 1 ? 'sequence' : 'sequences'}</text>`,
+  ];
+  if (!recordsLayout.length) {
+    markup.push('<text x="20" y="90" font-size="13" fill="#52685A">No sequences to display.</text>');
+  }
+  let groupTop = recordsTop;
+  for (const { record, segments, visible, rowCount, height: groupHeight } of recordsLayout) {
+    const id = record.id ?? '';
+    const name = record.name && record.name !== id ? record.name : '';
+    const label = name ? `${id} · ${name}` : id;
+    const length = record.result?.sequenceLength ?? record.sequence?.length ?? 0;
+    const score = record.result?.score ?? 0;
+    const formattedScore = String(score).replace(/^-/, '−');
+    const firstCopy = visible[0]?.index ?? pageStart + 1;
+    const lastCopy = visible[visible.length - 1]?.index ?? pageStart + visible.length;
+    const rangeText = visible.length
+      ? `Copies ${firstCopy.toLocaleString('en-US')}–${lastCopy.toLocaleString('en-US')} of ${segments.length.toLocaleString('en-US')}`
+      : 'No copies in this range';
+    markup.push(
+      `<g data-sequence-id="${escapeXml(id)}">`,
+      `<title>${escapeXml(`Sequence ${label}`)}</title>`,
+      `<line x1="20" y1="${groupTop}" x2="${width - right}" y2="${groupTop}" stroke="#E3E9E1"/>`,
+      `<text x="20" y="${groupTop + 24}" class="sequence-label">${escapeXml(label)}</text>`,
+      `<text x="20" y="${groupTop + 44}" class="plot-meta">${escapeXml(`${Number(length).toLocaleString('en-US')} bp · ${segments.length.toLocaleString('en-US')} copies · Score ${formattedScore}`)}</text>`,
+      `<text x="${width - right}" y="${groupTop + 44}" text-anchor="end" class="plot-meta">${escapeXml(rangeText)}</text>`,
+      `<text x="20" y="${groupTop + 64}" class="copy-axis">Copy</text>`,
+      `<text x="${left}" y="${groupTop + 64}" class="copy-axis">Each block = one motif copy</text>`,
+    );
+    if (!visible.length) {
+      markup.push(`<text x="${left}" y="${groupTop + copiesTop + 22}" font-size="12" fill="#52685A">No copies in this range.</text>`);
+    }
+    for (let row = 0; row < rowCount; row += 1) {
+      const rowStart = row * columns;
+      const rowEnd = Math.min(rowStart + columns, visible.length);
+      const first = visible[rowStart].index ?? pageStart + rowStart + 1;
+      const last = visible[rowEnd - 1].index ?? pageStart + rowEnd;
+      const label = first === last ? String(first) : `${first}–${last}`;
+      markup.push(`<text x="${left - 12}" y="${groupTop + copiesTop + row * rowHeight + blockHeight / 2 + 4}" text-anchor="end" font-size="11" fill="#52685A">${escapeXml(label)}</text>`);
+    }
+    for (let offset = 0; offset < visible.length; offset += 1) {
+      const segment = visible[offset];
+      const copy = segment.index ?? pageStart + offset + 1;
+      const motifId = `M${segment.motifIndex + 1}`;
+      const reference = motifs[segment.motifIndex] ?? segment.motif ?? '';
+      const observed = segment.sequence ?? '';
+      const color = motifColor(segment.motifIndex);
+      const x = left + offset % columns * (blockWidth + gap);
+      const y = groupTop + copiesTop + Math.floor(offset / columns) * rowHeight;
+      const fontSize = motifId.length > 3 ? 9 : 11;
+      const tooltip = `Sequence ${label}\nCopy ${copy} · ${motifId} · [${segment.start}, ${segment.end})\nObserved: ${observed}\nReference: ${reference}`;
+      markup.push(
+        `<g data-copy="${escapeXml(copy)}" data-motif-id="${escapeXml(motifId)}">`,
+        `<title>${escapeXml(tooltip)}</title>`,
+        `<rect x="${x}" y="${y}" width="${blockWidth}" height="${blockHeight}" rx="5" fill="${color.fill}"/>`,
+        `<text x="${x + blockWidth / 2}" y="${y + blockHeight / 2 + 4}" text-anchor="middle" font-size="${fontSize}" font-weight="600" fill="${color.ink}">${escapeXml(motifId)}</text>`,
+        '</g>',
+      );
+    }
+    markup.push('</g>');
+    groupTop += groupHeight;
+  }
+  markup.push('</svg>');
+  return markup.join('');
+}
+
+
+const MAX_BATCH_CELLS = 50_000_000;
+
+/** Bound each alignment and the total work while processing queries sequentially. */
+function validateBatchSize(sequences, motifs) {
+  if (motifs.length > LIMITS.maxMotifs) throw new Error(`This prototype accepts up to ${LIMITS.maxMotifs} motifs.`);
+  const totalMotifLength = motifs.reduce((sum, motif) => sum + motif.length, 0);
+  if (totalMotifLength > LIMITS.maxTotalMotifLength) throw new Error(`The combined motif length must be at most ${LIMITS.maxTotalMotifLength.toLocaleString('en-US')} bases.`);
+  let cells = 0;
+  for (const query of sequences) {
+    if (query.sequence.length > LIMITS.maxSequenceLength) throw new Error(`Sequence ${query.id} exceeds the ${LIMITS.maxSequenceLength.toLocaleString('en-US')}-base limit.`);
+    const queryCells = (query.sequence.length + 1) * totalMotifLength;
+    if (queryCells > LIMITS.maxCells) throw new Error(`Sequence ${query.id} and this motif set are too large for the prototype. Use a shorter query or fewer/shorter motifs.`);
+    cells += queryCells;
+  }
+  if (cells > MAX_BATCH_CELLS) throw new Error('This batch is too large for the prototype. Use fewer or shorter queries, or fewer/shorter motifs.');
+}
+
+/** Keep peak traceback memory bounded and allow cancellation between queries. */
+function createAnnotationBatch(sequences, motifs, { createWorker, onResult, onError, onProgress } = {}) {
+  let active = null;
+  let canceled = false;
+  let index = 0;
+  const records = [];
+  function advance() {
+    if (canceled) return;
+    if (index === sequences.length) { onResult?.(records); return; }
+    const query = sequences[index];
+    active = createAnnotationTask(query.sequence, motifs, {
+      createWorker,
+      onResult(result) {
+        if (canceled) return;
+        active = null;
+        records.push({ ...query, result });
+        index += 1;
+        onProgress?.({ completed: index, total: sequences.length, id: query.id });
+        advance();
+      },
+      onError(error) {
+        if (canceled) return;
+        active = null;
+        onError?.(new Error(`Sequence ${query.id}: ${error.message || String(error)}`));
+      },
+    });
+  }
+  // Return the cancellation handle before any callbacks, including empty batches.
+  let startTimer = setTimeout(() => { startTimer = null; advance(); }, 0);
+  return {
+    cancel() {
+      canceled = true;
+      if (startTimer !== null) clearTimeout(startTimer);
+      startTimer = null;
+      active?.cancel();
+      active = null;
+    },
+  };
+}
+
+/** Copy indices and sequence coordinates remain local to their own query. */
+function collectBatchResults(records) {
+  return {
+    score: records.reduce((sum, record) => sum + record.result.score, 0),
+    sequenceLength: records.reduce((sum, record) => sum + record.sequence.length, 0),
+    segments: records.flatMap((record) => record.result.segments.map((segment) => ({
+      ...segment, sequenceId: record.id, sequenceName: record.name || record.id,
+    }))),
+  };
+}
+
+function tsvField(value) {
+  const text = String(value);
+  return /[\t\r\n"]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function annotationTsv(result) {
+  const header = ['sequence_id', 'copy', 'motif_id', 'motif_index', 'reference_motif', 'start', 'end', 'observed_sequence', 'match'];
+  const lines = result.segments.map((segment) => [segment.sequenceId, segment.index, `M${segment.motifIndex + 1}`, segment.motifIndex, segment.motif, segment.start, segment.end, segment.sequence, segment.exact ? 'exact' : 'variant'].map(tsvField).join('\t'));
+  return [header.join('\t'), ...lines].join('\n') + '\n';
+}
+
+let standaloneWorkerURL;
+function createStandaloneWorker() {
+  if (!standaloneWorkerURL) {
+    standaloneWorkerURL = URL.createObjectURL(new Blob(["/** Default stringDecomposition scoring, including the reference's initialization. */\nconst LIMITS = Object.freeze({\n  maxSequenceLength: 100_000,\n  maxMotifs: 256,\n  maxTotalMotifLength: 20_000,\n  maxCells: 20_000_000,\n});\n\nconst RIGHT = 0;\nconst DOWN = 1;\nconst DIAGONAL = 2;\n\n/**\n * Partition a sequence into copies of the supplied motifs.\n *\n * This ports stringDecomposer from seqDecompose.py at its default penalties:\n * match = 0, mismatch = 1, indel = 1. The reference's first-column scores\n * (-rowIndex), first-row insertion transition, and tie rules are intentional.\n * Coordinates are zero-based, end-exclusive, and motifIndex uses input order.\n *\n * Scores use two rolling columns. Only directions and boundary motif IDs are\n * retained for traceback, so the full cell budget costs approximately 20 MB.\n */\nfunction decompose(sequence, motifs) {\n  if (typeof sequence !== 'string' || sequence.length === 0) {\n    throw new Error('Enter a nonempty tandem repeat sequence.');\n  }\n  if (!Array.isArray(motifs) || motifs.length === 0) {\n    throw new Error('Enter at least one nonempty motif.');\n  }\n  if (motifs.some((motif) => typeof motif !== 'string' || motif.length === 0)) {\n    throw new Error('Each motif must be a nonempty sequence.');\n  }\n  if (sequence.length > LIMITS.maxSequenceLength) {\n    throw new Error(`This prototype accepts up to ${LIMITS.maxSequenceLength.toLocaleString('en-US')} sequence bases.`);\n  }\n  if (motifs.length > LIMITS.maxMotifs) {\n    throw new Error(`This prototype accepts up to ${LIMITS.maxMotifs} motifs.`);\n  }\n\n  const sequenceLength = sequence.length;\n  const columns = sequenceLength + 1;\n  const totalMotifLength = motifs.reduce((sum, motif) => sum + motif.length, 0);\n  if (totalMotifLength > LIMITS.maxTotalMotifLength) {\n    throw new Error(`The combined motif length must be at most ${LIMITS.maxTotalMotifLength.toLocaleString('en-US')} bases.`);\n  }\n  const cellCount = columns * totalMotifLength;\n  if (cellCount > LIMITS.maxCells) {\n    throw new Error(`This input needs ${cellCount.toLocaleString('en-US')} alignment cells; the prototype limit is ${LIMITS.maxCells.toLocaleString('en-US')}. Shorten the sequence or reduce the motif set.`);\n  }\n\n  const offsets = new Uint32Array(motifs.length);\n  let rowOffset = 0;\n  for (let motifIndex = 0; motifIndex < motifs.length; motifIndex += 1) {\n    offsets[motifIndex] = rowOffset;\n    rowOffset += motifs[motifIndex].length;\n  }\n\n  let previous = new Int32Array(totalMotifLength);\n  let current = new Int32Array(totalMotifLength);\n  const trace = new Uint8Array(cellCount);\n  const boundaryMotifs = new Uint32Array(columns);\n  let boundaryScore = 0;\n  let finalMotifIndex = 0;\n\n  for (let motifIndex = 0; motifIndex < motifs.length; motifIndex += 1) {\n    const offset = offsets[motifIndex];\n    for (let row = 0; row < motifs[motifIndex].length; row += 1) {\n      previous[offset + row] = -row;\n      trace[(offset + row) * columns] = DOWN;\n    }\n  }\n\n  for (let column = 1; column <= sequenceLength; column += 1) {\n    let bestCompletedScore = -Infinity;\n    let bestCompletedMotif = 0;\n    const base = sequence.charCodeAt(column - 1);\n\n    for (let motifIndex = 0; motifIndex < motifs.length; motifIndex += 1) {\n      const motif = motifs[motifIndex];\n      const offset = offsets[motifIndex];\n      for (let row = 0; row < motif.length; row += 1) {\n        const flatRow = offset + row;\n        const substitution = motif.charCodeAt(row) === base ? 0 : -1;\n        const diagonal = (row === 0 ? boundaryScore : previous[flatRow - 1]) + substitution;\n        const down = (row === 0 ? boundaryScore : current[flatRow - 1]) - 1;\n        const right = previous[flatRow] - 1;\n\n        // Equal scores prefer diagonal, then down, then right.\n        if (diagonal >= down && diagonal >= right) {\n          current[flatRow] = diagonal;\n          trace[flatRow * columns + column] = DIAGONAL;\n        } else if (down >= diagonal && down >= right) {\n          current[flatRow] = down;\n          trace[flatRow * columns + column] = DOWN;\n        } else {\n          current[flatRow] = right;\n          trace[flatRow * columns + column] = RIGHT;\n        }\n      }\n\n      const completedScore = current[offset + motif.length - 1];\n      // Strict comparison preserves the earlier input motif on ties.\n      if (completedScore > bestCompletedScore) {\n        bestCompletedScore = completedScore;\n        bestCompletedMotif = motifIndex;\n      }\n    }\n\n    boundaryScore = bestCompletedScore;\n    boundaryMotifs[column] = bestCompletedMotif;\n    finalMotifIndex = bestCompletedMotif;\n    [previous, current] = [current, previous];\n  }\n\n  const motifIds = [finalMotifIndex];\n  const junctions = [sequenceLength];\n  let motifIndex = finalMotifIndex;\n  let row = motifs[motifIndex].length - 1;\n  let column = sequenceLength;\n\n  while (column > 0) {\n    const direction = trace[(offsets[motifIndex] + row) * columns + column];\n    if (row === 0) {\n      if (direction === RIGHT) {\n        column -= 1;\n      } else {\n        motifIndex = boundaryMotifs[column - 1];\n        row = motifs[motifIndex].length - 1;\n        if (column > 1) {\n          motifIds.push(motifIndex);\n          junctions.push(column - 1);\n        }\n        column -= 1;\n      }\n    } else if (direction === DIAGONAL) {\n      column -= 1;\n      row -= 1;\n    } else if (direction === DOWN) {\n      row -= 1;\n    } else {\n      column -= 1;\n    }\n  }\n\n  motifIds.reverse();\n  junctions.reverse();\n  const segments = motifIds.map((assignedMotifIndex, index) => {\n    const start = index === 0 ? 0 : junctions[index - 1];\n    const end = junctions[index];\n    const observed = sequence.slice(start, end);\n    return {\n      index: index + 1,\n      motifIndex: assignedMotifIndex,\n      motif: motifs[assignedMotifIndex],\n      start,\n      end,\n      sequence: observed,\n      exact: observed === motifs[assignedMotifIndex],\n    };\n  });\n\n  return { score: boundaryScore, segments, sequenceLength };\n}\n\n\nself.onmessage = ({ data }) => {\n  try {\n    const result = decompose(data?.sequence, data?.motifs);\n    self.postMessage({ ok: true, result });\n  } catch (error) {\n    self.postMessage({ ok: false, error: error instanceof Error ? error.message : String(error) });\n  }\n};\n"], {type: 'text/javascript'}));
+  }
+  return new Worker(standaloneWorkerURL);
+}
+
+const $ = (id) => document.getElementById(id);
+const sequenceInput = $('tr-sequence');
+const motifsInput = $('motif-sequences');
+const form = $('annotation-form');
+const number = new Intl.NumberFormat('en-US');
+const PAGE_SIZE = 50;
+const PLOT_PAGE_SIZE = 200;
+const OUTPUT_TABS = ['plot', 'key', 'annotation'];
+let current = null;
+let task = null;
+let page = 0;
+let plotPage = 0;
+let currentPlotSvg = '';
+let activeTab = 'plot';
+let request = 0;
+
+function announce(message) { $('status-message').textContent = message; }
+function setBusy(busy) {
+  $('annotate-button').disabled = busy;
+  $('annotate-button').classList.toggle('working', busy);
+  $('annotate-label').textContent = busy ? 'Annotating…' : 'Annotate sequences';
+  $('cancel-run').hidden = !busy;
+  $('results-section').setAttribute('aria-busy', String(busy));
+}
+function stopAnnotation() {
+  request += 1;
+  if (task) task.cancel();
+  task = null;
+  setBusy(false);
+}
+function resetResults(message = 'Your annotations will appear here.', detail = 'Enter query sequences and motifs, then run the annotation.') {
+  current = null;
+  page = 0;
+  plotPage = 0;
+  currentPlotSvg = '';
+  $('download-tsv').disabled = true;
+  $('download-svg').disabled = true;
+  $('result-content').hidden = true;
+  $('result-badge').hidden = true;
+  $('sequence-summary-rows').replaceChildren();
+  $('annotation-rows').replaceChildren();
+  $('plot-container').innerHTML = '';
+  $('motif-key-rows').replaceChildren();
+  $('empty-state').hidden = false;
+  $('empty-message').textContent = message;
+  $('empty-detail').textContent = detail;
+}
+function updateCounts() {
+  const raw = sequenceInput.value.trim();
+  const lines = raw.split(/\r\n|\n|\r/).map((line) => line.trim()).filter(Boolean);
+  const headers = lines.filter((line) => line.startsWith('>'));
+  const bases = lines.filter((line) => !line.startsWith('>')).join('').replace(/\s/g, '').length;
+  const queries = headers.length || lines.length;
+  $('sequence-count').textContent = `${number.format(queries)} quer${queries === 1 ? 'y' : 'ies'} · ${number.format(bases)} bp`;
+  const count = motifsInput.value.trim().split(/[\s,]+/).filter(Boolean).length;
+  $('motif-count').textContent = `${number.format(count)} motif${count === 1 ? '' : 's'}`;
+}
+function invalidate() {
+  const wasBusy = !!task;
+  stopAnnotation();
+  $('input-error').hidden = true;
+  resetResults('Ready for annotation.', 'Run annotation to analyze the current inputs.');
+  updateCounts();
+  if (wasBusy) announce('Annotation canceled because the input changed.');
+}
+function showError(message) {
+  $('input-error').textContent = message;
+  $('input-error').hidden = false;
+  announce(message);
+}
+function textCell(value, className = '') {
+  const cell = document.createElement('td');
+  cell.textContent = String(value);
+  cell.className = className;
+  return cell;
+}
+function renderSequenceSummaries() {
+  if (!current) return;
+  const fragment = document.createDocumentFragment();
+  for (const record of current.records) {
+    const { result } = record;
+    const row = document.createElement('tr');
+    const id = document.createElement('th');
+    id.setAttribute('scope', 'row');
+    id.className = 'sequence-id mono';
+    id.textContent = record.id;
+    id.setAttribute('title', record.name || record.id);
+    const used = new Set(result.segments.map((segment) => segment.motifIndex)).size;
+    const score = result.score < 0 ? `−${number.format(-result.score)}` : number.format(result.score);
+    row.append(id,
+      textCell(number.format(record.sequence.length), 'numeric'),
+      textCell(number.format(result.segments.length), 'numeric'),
+      textCell(`${number.format(used)} of ${number.format(current.input.motifs.length)}`, 'numeric'),
+      textCell(score, 'numeric'));
+    fragment.append(row);
+  }
+  $('sequence-summary-rows').replaceChildren(fragment);
+}
+function renderPage() {
+  if (!current) return;
+  const { result } = current;
+  const count = result.segments.length;
+  const from = page * PAGE_SIZE;
+  const to = Math.min(count, from + PAGE_SIZE);
+  const fragment = document.createDocumentFragment();
+  for (const segment of result.segments.slice(from, to)) {
+    const row = document.createElement('tr');
+    row.append(textCell(segment.sequenceId, 'sequence-id mono'), textCell(String(segment.index).padStart(2, '0'), 'copy-number'));
+    const motifCell = document.createElement('td');
+    const chip = document.createElement('span');
+    chip.className = 'motif-chip';
+    const color = motifColor(segment.motifIndex);
+    chip.style.setProperty('--chip-bg', color.fill);
+    chip.style.setProperty('--chip-color', color.ink);
+    chip.textContent = `M${segment.motifIndex + 1}`;
+    motifCell.append(chip);
+    row.append(motifCell, textCell(segment.motif, 'mono motif-ref'), textCell(number.format(segment.start), 'numeric mono'), textCell(number.format(segment.end), 'numeric mono'), textCell(segment.sequence, 'mono observed-sequence'));
+    const matchCell = document.createElement('td');
+    const match = document.createElement('span');
+    match.className = `match-state ${segment.exact ? 'exact' : 'variant'}`;
+    match.textContent = segment.exact ? 'Exact' : 'Variant';
+    matchCell.append(match);
+    row.append(matchCell);
+    fragment.append(row);
+  }
+  $('annotation-rows').replaceChildren(fragment);
+  $('row-summary').textContent = `Showing ${number.format(from + 1)}–${number.format(to)} of ${number.format(count)} motif copies`;
+  $('pagination').hidden = count <= PAGE_SIZE;
+  $('page-label').textContent = `${page + 1} / ${Math.ceil(count / PAGE_SIZE)}`;
+  $('previous-page').disabled = page === 0;
+  $('next-page').disabled = to >= count;
+}
+function showTab(name, focus = false) {
+  if (!OUTPUT_TABS.includes(name)) return;
+  activeTab = name;
+  for (const tab of OUTPUT_TABS) {
+    const selected = tab === name;
+    $('tab-' + tab).setAttribute('aria-selected', String(selected));
+    $('tab-' + tab).setAttribute('tabindex', selected ? '0' : '-1');
+    $('panel-' + tab).hidden = !selected;
+  }
+  if (focus) $('tab-' + name).focus();
+}
+function renderPlot() {
+  if (!current) return;
+  const count = Math.max(...current.records.map((record) => record.result.segments.length));
+  const from = plotPage * PLOT_PAGE_SIZE;
+  const to = Math.min(count, from + PLOT_PAGE_SIZE);
+  currentPlotSvg = buildStackedMotifPlot(current.records, current.input.motifs, { start: from, count: PLOT_PAGE_SIZE, copiesPerRow: 20 });
+  $('plot-container').innerHTML = currentPlotSvg;
+  $('plot-range-summary').textContent = `${number.format(current.records.length)} sequences · Copy positions ${number.format(from + 1)}–${number.format(to)} of ${number.format(count)}`;
+  $('plot-pagination').hidden = count <= PLOT_PAGE_SIZE;
+  $('plot-page-label').textContent = `${plotPage + 1} / ${Math.ceil(count / PLOT_PAGE_SIZE)}`;
+  $('plot-previous-page').disabled = plotPage === 0;
+  $('plot-next-page').disabled = to >= count;
+  $('svg-download-label').textContent = count > PLOT_PAGE_SIZE ? 'Download page SVG' : 'Download SVG';
+  $('download-svg').disabled = false;
+}
+function renderMotifKey() {
+  if (!current) return;
+  const fragment = document.createDocumentFragment();
+  for (const entry of buildMotifKey(current.result, current.input.motifs)) {
+    const row = document.createElement('tr');
+    const idCell = document.createElement('td');
+    const id = document.createElement('span');
+    id.className = 'key-id';
+    const swatch = document.createElement('span');
+    swatch.className = 'motif-swatch';
+    swatch.style.setProperty('background', entry.color.fill);
+    swatch.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    label.textContent = entry.motifId;
+    id.append(swatch, label);
+    idCell.append(id);
+    row.append(idCell, textCell(entry.motif, 'mono motif-ref'), textCell(number.format(entry.length), 'numeric mono'), textCell(number.format(entry.copies), 'numeric mono'), textCell(`${(entry.proportion * 100).toFixed(1)}%`, 'numeric mono'));
+    fragment.append(row);
+  }
+  $('motif-key-rows').replaceChildren(fragment);
+}
+function showResult(records, input, example) {
+  const result = collectBatchResults(records);
+  current = { records, result, input };
+  page = 0;
+  plotPage = 0;
+  const count = result.segments.length;
+  const exact = result.segments.filter((segment) => segment.exact).length;
+  renderSequenceSummaries();
+  $('result-name').textContent = `${records.length} quer${records.length === 1 ? 'y' : 'ies'}`;
+  $('match-summary').textContent = `${number.format(exact)} exact · ${number.format(count - exact)} variant`;
+  $('empty-state').hidden = true;
+  $('result-content').hidden = false;
+  $('result-badge').hidden = !example;
+  $('download-tsv').disabled = false;
+  renderPage();
+  renderPlot();
+  renderMotifKey();
+  showTab(activeTab);
+  announce(`${example ? 'Example annotation' : 'Annotation'} complete. ${records.length} sequences, ${count} motif copies across ${result.sequenceLength} bases.`);
+}
+function annotate(example = false) {
+  stopAnnotation();
+  resetResults('Annotating your sequences…', 'Aligning each query with the shared motif set in your browser.');
+  $('input-error').hidden = true;
+  let input;
+  try {
+    input = parseInput(sequenceInput.value, motifsInput.value);
+    validateBatchSize(input.sequences, input.motifs);
+  } catch (error) {
+    resetResults();
+    showError(error.message);
+    if (error.field === 'sequence') sequenceInput.focus();
+    if (error.field === 'motifs') motifsInput.focus();
+    return;
+  }
+  setBusy(true);
+  announce(`Annotating ${input.sequences.length} sequences.`);
+  const run = request;
+  try {
+    task = createAnnotationBatch(input.sequences, input.motifs, {
+      createWorker: createStandaloneWorker,
+      onProgress({ completed, total }) {
+        if (request !== run) return;
+        $('annotate-label').textContent = `Annotating ${completed}/${total}…`;
+        announce(`Annotated ${completed} of ${total} sequences.`);
+      },
+      onResult(records) {
+        if (request !== run) return;
+        stopAnnotation();
+        showResult(records, input, example);
+      },
+      onError(error) {
+        if (request !== run) return;
+        stopAnnotation();
+        resetResults();
+        showError(error.message || 'Annotation failed. Please check your input.');
+      },
+    });
+  } catch (error) {
+    stopAnnotation();
+    resetResults();
+    showError(error.message || 'Annotation could not start. Please reopen the file and try again.');
+  }
+}
+form.addEventListener('submit', (event) => { event.preventDefault(); annotate(); });
+$('annotate-button').addEventListener('click', () => annotate());
+for (const name of OUTPUT_TABS) {
+  const tab = $('tab-' + name);
+  tab.addEventListener('click', () => showTab(name));
+  tab.addEventListener('keydown', (event) => {
+    const index = OUTPUT_TABS.indexOf(name);
+    let target;
+    if (event.key === 'ArrowRight') target = OUTPUT_TABS[(index + 1) % OUTPUT_TABS.length];
+    if (event.key === 'ArrowLeft') target = OUTPUT_TABS[(index + OUTPUT_TABS.length - 1) % OUTPUT_TABS.length];
+    if (event.key === 'Home') target = OUTPUT_TABS[0];
+    if (event.key === 'End') target = OUTPUT_TABS[OUTPUT_TABS.length - 1];
+    if (target) { event.preventDefault(); showTab(target, true); }
+  });
+}
+for (const field of [sequenceInput, motifsInput]) {
+  field.addEventListener('input', invalidate);
+  field.addEventListener('keydown', (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); annotate(); }
+  });
+}
+$('load-example').addEventListener('click', () => {
+  sequenceInput.value = '>Sequence_1\nACTACACTAGTATACTACTAGTAGTACACTAGTACTACTAG\n>Sequence_2\nACTACTACTAGTATACTACTAGTAGTACACTAGTACTACTAG\n>Sequence_3\nACTACACTACTAGTATACTACTAGTAGTACACTAGTACTACTAG';
+  motifsInput.value = 'ACT,AC';
+  updateCounts();
+  annotate(true);
+});
+$('clear-input').addEventListener('click', () => {
+  sequenceInput.value = '';
+  motifsInput.value = '';
+  invalidate();
+  resetResults();
+  sequenceInput.focus();
+});
+$('cancel-run').addEventListener('click', () => {
+  stopAnnotation();
+  resetResults('Annotation canceled.', 'Your inputs are ready whenever you want to run again.');
+  announce('Annotation canceled.');
+});
+$('previous-page').addEventListener('click', () => { if (page > 0) { page -= 1; renderPage(); } });
+$('next-page').addEventListener('click', () => { if (current && (page + 1) * PAGE_SIZE < current.result.segments.length) { page += 1; renderPage(); } });
+$('plot-previous-page').addEventListener('click', () => { if (plotPage > 0) { plotPage -= 1; renderPlot(); } });
+$('plot-next-page').addEventListener('click', () => { if (current && current.records.some((record) => (plotPage + 1) * PLOT_PAGE_SIZE < record.result.segments.length)) { plotPage += 1; renderPlot(); } });
+$('download-svg').addEventListener('click', () => {
+  if (!current || !currentPlotSvg) return;
+  const url = URL.createObjectURL(new Blob([currentPlotSvg], { type: 'image/svg+xml;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  const name = current.records.length === 1 ? current.records[0].id.replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 60) : 'vamos';
+  const suffix = current.records.some((record) => record.result.segments.length > PLOT_PAGE_SIZE) ? `_page_${plotPage + 1}` : '';
+  link.download = `${name || 'vamos'}_motif_order${suffix}.svg`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  announce('Downloaded the displayed stacked motif plots as SVG.');
+});
+$('download-tsv').addEventListener('click', () => {
+  if (!current) return;
+  const blob = new Blob([annotationTsv(current.result)], { type: 'text/tab-separated-values;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  const name = current.records.length === 1 ? current.records[0].id.replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 60) : 'vamos';
+  link.download = `${name || 'vamos'}_annotation.tsv`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  announce(`Downloaded ${current.result.segments.length} annotation rows as TSV.`);
+});
+updateCounts();
+$('startup-message').hidden = true;
+annotate(true);
+
+})();</script>
+</body>
+</html>
