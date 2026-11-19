@@ -8,4 +8,4 @@ sdAnnotation annotates tandem repeat DNA sequences in your browser using the str
 
 Sequences stay in your browser. For offline use, open the standalone `index.html`.
 
-The annotation engine matched the full motif order for all 62,789 available haplotypes across the 78 benchmark loci. [TRCompDB benchmark dataset](https://zenodo.org/records/21961073)
+The annotation engine matched the full motif order for all 62,789 available haplotypes across the 78 bioTR loci. [TRCompDB benchmark dataset](https://zenodo.org/records/21961073)
